@@ -1,26 +1,46 @@
 dns解锁
+
+
 chattr -i /etc/resolv.conf
+
 锁定
+
 chattr +i /etc/resolv.conf
+
 创建脚本
+
 nano net_optimize.sh
+
 权限运行
+
 chmod +x net_optimize.sh
 sudo ./net_optimize.sh
+
 测试ipv6
+
 ping6 google.com
+
 开启bbr
+
 curl -L https://raw.githubusercontent.com/teddysun/across/master/bbr.sh | bash
+
 确认bbr
+
 sysctl net.ipv4.tcp_congestion_control
 lsmod | grep bbr
+
 查看dns
+
 cat /etc/resolv.conf
+
 开启tcp
 
 echo 3 > /proc/sys/net/ipv4/tcp_fastopen
+
 永久tcp
+
 net.ipv4.tcp_fastopen=3
+
 查看网络信息
 
 ip a && echo && ip route && echo && cat /etc/resolv.conf
@@ -117,3 +137,23 @@ echo
 echo "======================================"
 echo " VPS 网络配置完成 ✔"
 echo "======================================"
+
+
+创建脚本
+
+nano vps_network_fix.sh
+
+权限运行
+
+chmod +x vps_network_fix.sh
+
+sudo ./vps_network_fix.sh
+
+
+测试解析
+
+
+dig google.com
+ping google.com
+
+
