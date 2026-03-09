@@ -1,0 +1,103 @@
+#!/bin/bash
+# =============================== #
+# 一键网络加速（BBR v3 + IPv4/IPv6 + DNS加速 + TCP优化）
+# Author: ChatGPT
+# =============================== #
+
+# ---------------- 配置区 ----------------
+# VPS 公网 IPv4/IPv6，可多个
+VPS_IPV4=("46.236.220.172" "1.2.3.4")                # 添加更多IPv4用空格分隔
+VPS_IPV6=("2606:4700:4700::1111" "2001:4860:4860::8888") # 添加更多IPv6用空格分隔，可留空
+
+# DNS配置，可自定义
+DNS_IPV4=("208.67.222.222" "1.1.1.1" "8.8.4.4" "208.67.222.222")
+DNS_IPV6=("2606:4700:4700::1111" "2001:4860:4860::8888")
+# ---------------------------------------
+
+# 更新系统并安装必要工具
+apt update -y && apt upgrade -y
+apt install -y curl iproute2 dnsutils net-tools
+
+echo "✅ 系统更新完成"
+
+# ----------------- BBR v3 -----------------
+echo "🚀 安装 BBR v3..."
+modprobe tcp_bbr
+echo "tcp_bbr" >> /etc/modules-load.d/bbr.conf
+
+sysctl -w net.core.default_qdisc=fq
+sysctl -w net.ipv4.tcp_congestion_control=bbr
+
+cat >> /etc/sysctl.conf <<EOF
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+EOF
+
+sysctl -p
+echo "✅ BBR v3 已启用"
+
+# ----------------- TCP优化 -----------------
+cat >> /etc/sysctl.conf <<EOF
+# TCP缓冲区
+net.core.rmem_max = 67108864
+net.core.wmem_max = 67108864
+net.ipv4.tcp_rmem = 4096 87380 67108864
+net.ipv4.tcp_wmem = 4096 65536 67108864
+
+# 高并发连接
+net.core.somaxconn = 65535
+net.core.netdev_max_backlog = 250000
+net.ipv4.tcp_max_syn_backlog = 8192
+net.ipv4.tcp_tw_reuse = 1
+net.ipv4.tcp_fastopen = 3
+net.ipv4.tcp_syncookies = 1
+
+# IPv6优化
+net.ipv6.conf.all.accept_ra = 2
+net.ipv6.conf.default.accept_ra = 2
+net.ipv6.conf.all.autoconf = 1
+net.ipv6.conf.default.autoconf = 1
+EOF
+
+sysctl -p
+echo "✅ TCP 优化完成"
+
+# ----------------- 永久DNS -----------------
+echo "🛰️ 配置永久 DNS..."
+cat > /etc/resolv.conf <<EOF
+# Permanent DNS (IPv4 + IPv6)
+$(for ip in "${DNS_IPV4[@]}"; do echo "nameserver $ip"; done)
+$(for ip in "${DNS_IPV6[@]}"; do echo "nameserver $ip"; done)
+EOF
+
+# 锁定防止覆盖
+chattr +i /etc/resolv.conf
+echo "✅ DNS 已设置并锁定"
+
+# ----------------- hosts文件 -----------------
+echo "📝 配置 /etc/hosts..."
+cat > /etc/hosts <<EOF
+127.0.0.1       localhost
+$(for ip in "${VPS_IPV4[@]}"; do echo "$ip VPS_IPV4"; done)
+$(for ip in "${VPS_IPV6[@]}"; do echo "$ip VPS_IPV6"; done)
+EOF
+echo "✅ /etc/hosts 配置完成"
+
+# ----------------- 测试 -----------------
+echo "🔹 测试本机 IPv4解析："
+ping -c 2 "${VPS_IPV4[0]}"
+
+echo "🔹 测试本机 IPv6解析："
+if [ -n "${VPS_IPV6[0]}" ]; then
+    ping -c 2 "${VPS_IPV6[0]}"
+else
+    echo "⚠️ VPS没有IPv6，跳过测试"
+fi
+
+echo "🔹 测试外网DNS IPv4解析："
+dig google.com A +short
+
+echo "🔹 测试外网DNS IPv6解析："
+dig google.com AAAA +short
+
+echo "✅ 网络优化脚本完成"
