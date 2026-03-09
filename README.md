@@ -183,3 +183,7 @@ cat /etc/resolv.conf
 
 dig google.com A +short
 dig google.com AAAA +short
+
+查看网卡
+
+ip link
