@@ -18,3 +18,6 @@ lsmod | grep bbr
 cat /etc/resolv.conf
 开启tcp
 
+echo 3 > /proc/sys/net/ipv4/tcp_fastopen
+永久tcp
+net.ipv4.tcp_fastopen=3
