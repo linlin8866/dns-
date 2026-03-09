@@ -156,4 +156,30 @@ sudo ./vps_network_fix.sh
 dig google.com
 ping google.com
 
+删除软链接
 
+rm -f /etc/resolv.conf
+
+创建dns
+
+cat > /etc/resolv.conf <<EOF
+nameserver 208.67.222.222
+nameserver 208.67.220.220
+nameserver 1.1.1.1
+nameserver 8.8.8.8
+nameserver 2606:4700:4700::1111
+nameserver 2001:4860:4860::8888
+EOF
+
+锁定dns
+
+chattr +i /etc/resolv.conf
+
+查看dns
+
+cat /etc/resolv.conf
+
+测试dns
+
+dig google.com A +short
+dig google.com AAAA +short
